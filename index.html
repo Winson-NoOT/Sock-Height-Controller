@@ -262,6 +262,9 @@
           <clipPath id="legsClip">
             <path d="M89,600 L150,600 L150,608 L149,616 L148,624 L148,632 L147,640 L147,648 L147,656 L147,664 L147,672 L147,680 L147,688 L147,696 L146,704 L145,712 L144,720 L143,728 L143,736 L144,744 L145,752 L146,760 L147,768 L148,776 L148,784 L148,792 L148,800 L148,808 L148,816 L148,824 L148,832 L148,840 L148,848 L147,856 L147,864 L147,872 L148,880 L148,888 L148,896 L149,904 L150,912 L151,920 L153,928 L128,928 L129,920 L128,912 L127,904 L126,896 L125,888 L123,880 L122,872 L120,864 L118,856 L116,848 L115,840 L113,832 L111,824 L109,816 L107,808 L105,800 L104,792 L103,784 L102,776 L101,768 L101,760 L102,752 L102,744 L103,736 L104,728 L104,720 L105,712 L105,704 L105,696 L105,688 L104,680 L104,672 L102,664 L101,656 L99,648 L98,640 L96,632 L94,624 L93,616 L91,608 L89,600 Z"/>
             <path d="M182,600 L247,600 L246,608 L245,616 L245,624 L244,632 L244,640 L244,648 L244,656 L244,664 L245,672 L246,680 L248,688 L251,696 L255,704 L259,712 L263,720 L266,728 L269,736 L272,744 L274,752 L276,760 L277,768 L278,776 L279,784 L279,792 L280,800 L280,808 L281,816 L281,824 L281,832 L282,840 L282,848 L282,856 L283,864 L284,872 L284,880 L285,888 L287,896 L289,904 L292,912 L295,920 L300,928 L266,928 L265,920 L264,912 L264,904 L264,896 L263,888 L261,880 L260,872 L258,864 L257,856 L255,848 L253,840 L251,832 L248,824 L246,816 L243,808 L241,800 L238,792 L235,784 L232,776 L230,768 L227,760 L225,752 L223,744 L220,736 L218,728 L215,720 L212,712 L208,704 L204,696 L201,688 L200,680 L198,672 L197,664 L195,656 L194,648 L192,640 L190,632 L188,624 L186,616 L184,608 L182,600 Z"/>
+            <!-- upper-thigh regions: top edge follows the skirt hem -->
+            <path d="M89,604 L89,556 L93,554 L97,556 L101,560 L105,560 L109,562 L113,563 L117,565 L121,565 L125,562 L129,560 L133,566 L137,566 L141,568 L145,568 L149,570 L150,570 L150,604 Z"/>
+            <path d="M182,604 L182,572 L186,572 L190,572 L194,572 L198,570 L202,564 L206,570 L210,570 L214,570 L218,570 L222,569 L226,570 L230,570 L234,568 L238,562 L242,562 L246,564 L247,564 L247,604 Z"/>
           </clipPath>
           <pattern id="sockStripes" width="16" height="16" patternUnits="userSpaceOnUse">
             <rect width="16" height="16" fill="#ffffff"/>
@@ -293,8 +296,8 @@
 
         <g clip-path="url(#legsClip)">
           <!-- bare skin, painted over the tights down to the sock top -->
-          <rect id="skinFillL" x="85"  y="600" width="72"  height="0" fill="url(#skinL)"/>
-          <rect id="skinFillR" x="178" y="600" width="126" height="0" fill="url(#skinR)"/>
+          <rect id="skinFillL" x="85"  y="536" width="72"  height="0" fill="url(#skinL)"/>
+          <rect id="skinFillR" x="178" y="536" width="126" height="0" fill="url(#skinR)"/>
           <!-- colored socks keep the artwork's shading via screen blending -->
           <rect id="colorFill" x="85" y="935" width="220" height="0" style="mix-blend-mode:screen"/>
           <!-- welt band at the sock top -->
@@ -372,7 +375,8 @@
   const swatches  = document.querySelectorAll('.swatch');
 
   // artwork geometry (svg user units)
-  const HIP_Y   = 600;   // top of the legs, hidden under the skirt shadow
+  const LEG_TOP = 536;   // above the skirt hem; the clip path trims to the hem line
+  const HIP_Y   = 600;   // sock top at max non-tights height
   const ANKLE_Y = 878;   // sock top at 0%, just above the loafers
   const LEG_BOT = 893;   // legs end here; the redrawn loafers take over
 
@@ -398,7 +402,7 @@
     const topY = isBare ? LEG_BOT : ANKLE_Y - (v / 100) * (ANKLE_Y - HIP_Y);
 
     // skin: from under the skirt down to the sock top
-    const skinH = isTights ? 0 : Math.max(0, topY - HIP_Y);
+    const skinH = isTights ? 0 : Math.max(0, topY - LEG_TOP);
     skinL.setAttribute('height', skinH);
     skinR.setAttribute('height', skinH);
 
@@ -406,7 +410,7 @@
     if (sockColor === 'black' || isBare) {
       colorFill.setAttribute('height', 0);
     } else {
-      const cTop = isTights ? HIP_Y : topY;
+      const cTop = isTights ? LEG_TOP : topY;
       colorFill.setAttribute('y', cTop);
       colorFill.setAttribute('height', LEG_BOT - cTop);
       colorFill.setAttribute('fill', sockColor);
