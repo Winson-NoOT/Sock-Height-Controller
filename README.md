@@ -25,3 +25,4 @@ open index.html
 
 - `index.html` —— 页面、样式与交互逻辑(单文件)
 - `char.webp` —— 角色立绘;袜子的显隐由贴合腿型的 SVG 裁剪路径与覆盖层实时控制
+- `legs-clip.svg` —— 腿型裁剪路径的可视化预览(仅供查看;实际路径内联在 `index.html` 的 `<clipPath id="legsClip">` 中,因为 Chromium 不支持 clip-path 引用外部文件)
