@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>袜子高度控制器 · Sock Height Controller</title>
+<style>
+  :root {
+    --cream: #f7f1e8;
+    --ink: #1a1a1a;
+    --accent: #e8b04b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: #efe7db;
+    font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+  }
+  .frame {
+    position: relative;
+    width: min(1200px, 100%);
+    background: var(--cream);
+    border: 4px solid var(--ink);
+    border-radius: 28px;
+    padding: 28px 36px 22px;
+    overflow: hidden;
+    box-shadow: 0 10px 0 rgba(0,0,0,.12);
+  }
+  /* corner ticks like the reference frame */
+  .frame::before, .frame::after {
+    content: "";
+    position: absolute;
+    width: 34px; height: 34px;
+    border: 4px solid var(--ink);
+    border-radius: 50%;
+    opacity: .15;
+  }
+  .frame::before { top: -14px; left: -14px; }
+  .frame::after  { bottom: -14px; right: -14px; }
+
+  header { text-align: center; position: relative; z-index: 2; }
+  header h1 {
+    font-size: clamp(20px, 3.2vw, 30px);
+    letter-spacing: .12em;
+  }
+  header p.sub {
+    margin-top: 4px;
+    font-size: 13px;
+    color: #8a8378;
+    letter-spacing: .25em;
+    text-transform: uppercase;
+  }
+
+  .stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(16px, 4vw, 70px);
+    margin-top: 6px;
+    position: relative;
+    z-index: 2;
+    flex-wrap: wrap;
+  }
+
+  .character { flex: 0 0 auto; }
+  .character svg { display: block; height: min(62vh, 560px); width: auto; }
+
+  .panel {
+    flex: 0 1 460px;
+    min-width: 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+
+  .readout { text-align: center; }
+  .readout .zone {
+    font-size: clamp(30px, 4.5vw, 44px);
+    font-weight: 700;
+    letter-spacing: .1em;
+    transition: color .2s;
+  }
+  .readout .pct {
+    margin-top: 2px;
+    font-size: 14px;
+    color: #9a917f;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .1em;
+  }
+  .badge {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 14px;
+    border: 3px solid var(--ink);
+    border-radius: 999px;
+    background: #ffd9e0;
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: .2em;
+    opacity: 0;
+    transform: scale(.7);
+    transition: all .25s cubic-bezier(.34,1.56,.64,1);
+  }
+  .badge.on { opacity: 1; transform: scale(1); }
+
+  /* ------- chunky slider, styled after the reference ------- */
+  .slider-wrap { padding: 6px 4px; }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 48px;
+    background: transparent;
+    cursor: pointer;
+    display: block;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 24px;
+    background: #c7c3bd;
+    border: 4px solid var(--ink);
+    border-radius: 999px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 46px; height: 46px;
+    margin-top: -15px;
+    background: #fff;
+    border: 5px solid var(--ink);
+    border-radius: 50%;
+    box-shadow: 0 3px 0 rgba(0,0,0,.2);
+    transition: transform .1s;
+  }
+  input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
+  input[type="range"]::-moz-range-track {
+    height: 24px;
+    background: #c7c3bd;
+    border: 4px solid var(--ink);
+    border-radius: 999px;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 38px; height: 38px;
+    background: #fff;
+    border: 5px solid var(--ink);
+    border-radius: 50%;
+    box-shadow: 0 3px 0 rgba(0,0,0,.2);
+  }
+
+  .ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #a39a88;
+    padding: 0 10px;
+    letter-spacing: .05em;
+  }
+  .ticks span.active { color: var(--ink); font-weight: 700; }
+
+  .colors {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    align-items: center;
+  }
+  .colors .label { font-size: 13px; color: #8a8378; letter-spacing: .2em; }
+  .swatch {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 3px solid var(--ink);
+    cursor: pointer;
+    transition: transform .15s;
+    padding: 0;
+  }
+  .swatch:hover { transform: scale(1.15); }
+  .swatch.sel { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .swatch.striped {
+    background: repeating-linear-gradient(0deg, #b9a6e8 0 5px, #fff 5px 10px);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 14px;
+    position: relative;
+    z-index: 2;
+  }
+  footer .caption {
+    display: inline-block;
+    font-size: clamp(15px, 2.4vw, 22px);
+    font-weight: 700;
+    letter-spacing: .15em;
+    color: #fff;
+    background: rgba(0,0,0,.75);
+    padding: 6px 18px;
+    border-radius: 8px;
+  }
+
+  /* ------- floating background doodles ------- */
+  .doodle {
+    position: absolute;
+    z-index: 1;
+    opacity: .8;
+    animation: bob 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .doodle svg { display: block; }
+  @keyframes bob {
+    0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+    50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
+  }
+  .sparkle {
+    position: absolute;
+    z-index: 1;
+    font-weight: 700;
+    animation: twinkle 2.6s ease-in-out infinite;
+    pointer-events: none;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: .25; transform: scale(.8); }
+    50% { opacity: .9; transform: scale(1.15); }
+  }
+
+  @media (max-width: 760px) {
+    .character svg { height: 46vh; }
+    .frame { padding: 20px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- background doodles -->
+  <div class="doodle" style="top:12%; left:3%; --r:-15deg;">
+    <svg width="72" height="86" viewBox="0 0 60 72"><path d="M18 6h24v26c0 10 6 12 6 22a16 16 0 0 1-32 0c0-6 2-9 2-14z" fill="#dcdcdc" stroke="#b5b5b5" stroke-width="3" stroke-linejoin="round"/><path d="M18 6h24v10H18z" fill="#fff" stroke="#b5b5b5" stroke-width="3"/></svg>
+  </div>
+  <div class="doodle" style="top:30%; right:3%; --r:14deg; animation-delay:.8s;">
+    <svg width="72" height="86" viewBox="0 0 60 72"><path d="M18 6h24v26c0 10 6 12 6 22a16 16 0 0 1-32 0c0-6 2-9 2-14z" fill="#f6c9cf" stroke="#e39aa5" stroke-width="3" stroke-linejoin="round"/><path d="M18 6h24v10H18z" fill="#fbe4e7" stroke="#e39aa5" stroke-width="3"/><path d="M26 12c2-3 8-3 8 0" fill="none" stroke="#e39aa5" stroke-width="2.5" stroke-linecap="round"/></svg>
+  </div>
+  <div class="doodle" style="bottom:14%; left:4%; --r:10deg; animation-delay:1.4s;">
+    <svg width="78" height="92" viewBox="0 0 60 72"><path d="M18 6h24v26c0 10 6 12 6 22a16 16 0 0 1-32 0c0-6 2-9 2-14z" fill="#eef6fc" stroke="#a9cfe8" stroke-width="3" stroke-linejoin="round"/><path d="M18 6h24v10H18z" fill="#fff" stroke="#a9cfe8" stroke-width="3"/><circle cx="26" cy="34" r="2.4" fill="#a9cfe8"/><circle cx="36" cy="44" r="2.4" fill="#a9cfe8"/><circle cx="28" cy="54" r="2.4" fill="#a9cfe8"/></svg>
+  </div>
+  <div class="doodle" style="bottom:8%; right:4%; --r:-12deg; animation-delay:.4s;">
+    <svg width="80" height="94" viewBox="0 0 60 72"><path d="M18 6h24v26c0 10 6 12 6 22a16 16 0 0 1-32 0c0-6 2-9 2-14z" fill="#cbb7ee" stroke="#a58bd8" stroke-width="3" stroke-linejoin="round"/><path d="M20 30l22-8M20 40l24-9M22 52l24-10M28 64l18-8" stroke="#fff" stroke-width="5" stroke-linecap="round"/><path d="M18 6h24v10H18z" fill="#e8def8" stroke="#a58bd8" stroke-width="3"/></svg>
+  </div>
+  <div class="sparkle" style="top:18%; left:16%; color:#f0b429; font-size:26px;">✦</div>
+  <div class="sparkle" style="top:55%; left:7%;  color:#5fca8e; font-size:18px; animation-delay:1s;">✦</div>
+  <div class="sparkle" style="top:12%; right:14%; color:#f0b429; font-size:20px; animation-delay:.5s;">✦</div>
+  <div class="sparkle" style="bottom:20%; right:16%; color:#f28cb1; font-size:24px; animation-delay:1.6s;">✦</div>
+  <div class="sparkle" style="bottom:9%;  left:32%; color:#f0b429; font-size:22px; animation-delay:2s;">✦</div>
+
+  <header>
+    <h1>袜 子 高 度 控 制 器</h1>
+    <p class="sub">Sock Height Controller</p>
+  </header>
+
+  <div class="stage">
+    <div class="character">
+      <!-- ==================== character ==================== -->
+      <svg viewBox="0 0 300 660" xmlns="http://www.w3.org/2000/svg" aria-label="穿校服的动漫少女">
+        <defs>
+          <!-- both legs, used to clip the socks -->
+          <clipPath id="legsClip">
+            <path d="M126,300 C123,420 128,505 132,606 L144,606 C146,505 148,420 148,300 Z"/>
+            <path d="M152,300 C152,420 154,505 156,606 L168,606 C172,505 177,420 174,300 Z"/>
+          </clipPath>
+          <pattern id="sockStripes" width="14" height="14" patternUnits="userSpaceOnUse">
+            <rect width="14" height="14" fill="#ffffff"/>
+            <rect width="14" height="7" fill="#b9a6e8"/>
+          </pattern>
+          <linearGradient id="hairShine" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#5a4433"/>
+            <stop offset="1" stop-color="#3d2e22"/>
+          </linearGradient>
+        </defs>
+
+        <!-- back hair -->
+        <path d="M150,28 C96,28 78,74 80,130 C82,190 74,240 88,285 C96,308 118,312 122,290 C126,250 122,200 124,160 L176,160 C178,200 174,250 178,290 C182,312 204,308 212,285 C226,240 218,190 220,130 C222,74 204,28 150,28 Z" fill="url(#hairShine)"/>
+
+        <!-- legs (skin) -->
+        <path d="M126,300 C123,420 128,505 132,606 L144,606 C146,505 148,420 148,300 Z" fill="#ffe3cf"/>
+        <path d="M152,300 C152,420 154,505 156,606 L168,606 C172,505 177,420 174,300 Z" fill="#ffe3cf"/>
+        <path d="M133,468 q4,3 8,0" stroke="#f3c6a8" stroke-width="1.6" fill="none"/>
+        <path d="M159,468 q4,3 8,0" stroke="#f3c6a8" stroke-width="1.6" fill="none"/>
+
+        <!-- socks: a rect clipped to the leg shapes; its top edge is the slider -->
+        <g clip-path="url(#legsClip)">
+          <rect id="sockFill" x="110" y="606" width="80" height="330" fill="#2a2a2e"/>
+          <rect id="sockBand" x="110" y="606" width="80" height="7" fill="#000" opacity="0"/>
+          <!-- subtle sheen so black tights read as fabric -->
+          <rect id="sockSheenL" x="134" y="606" width="3" height="0" fill="#ffffff" opacity=".14"/>
+          <rect id="sockSheenR" x="160" y="606" width="3" height="0" fill="#ffffff" opacity=".14"/>
+        </g>
+
+        <!-- loafers -->
+        <path d="M129,598 C127,612 122,616 118,620 C114,625 118,630 126,630 L146,630 C150,630 150,624 149,618 L147,598 Z" fill="#6b4a2f" stroke="#503722" stroke-width="2"/>
+        <path d="M153,598 C152,612 150,618 151,624 C151,629 154,630 158,630 L178,630 C186,630 190,625 186,620 C182,616 177,612 175,598 Z" fill="#6b4a2f" stroke="#503722" stroke-width="2"/>
+        <path d="M131,604 h15 M155,604 h15" stroke="#503722" stroke-width="2"/>
+
+        <!-- pleated plaid skirt -->
+        <g>
+          <path d="M116,268 L184,268 C192,296 198,320 202,344 C168,356 132,356 98,344 C102,320 108,296 116,268 Z" fill="#39435f"/>
+          <g stroke="#4c5878" stroke-width="1.6">
+            <path d="M113,278 L100,346"/><path d="M126,272 L120,350"/>
+            <path d="M139,270 L138,353"/><path d="M152,270 L152,354"/>
+            <path d="M165,270 L167,352"/><path d="M178,273 L182,349"/>
+            <path d="M190,282 L198,344"/>
+          </g>
+          <g stroke="#8a94ad" stroke-width="1.1" opacity=".7">
+            <path d="M110,292 C138,300 164,300 192,292"/>
+            <path d="M104,318 C136,328 166,328 198,318"/>
+          </g>
+        </g>
+
+        <!-- blazer torso -->
+        <path d="M118,168 C104,176 100,196 100,222 C100,248 106,262 112,276 L188,276 C194,262 200,248 200,222 C200,196 196,176 182,168 C172,162 128,162 118,168 Z" fill="#2b3a5c"/>
+        <!-- shirt + lapels -->
+        <path d="M138,166 L150,204 L162,166 Z" fill="#ffffff"/>
+        <path d="M138,166 L150,204 L134,196 L130,172 Z" fill="#22304d"/>
+        <path d="M162,166 L150,204 L166,196 L170,172 Z" fill="#22304d"/>
+        <path d="M148,204 L152,204 L154,250 L146,250 Z" fill="#f2f2f2"/>
+        <circle cx="150" cy="222" r="2.6" fill="#c9a24b"/>
+        <circle cx="150" cy="240" r="2.6" fill="#c9a24b"/>
+        <!-- bow -->
+        <path d="M150,172 L136,164 L138,180 Z" fill="#b03040"/>
+        <path d="M150,172 L164,164 L162,180 Z" fill="#b03040"/>
+        <circle cx="150" cy="172" r="4" fill="#8d2432"/>
+
+        <!-- arms -->
+        <path d="M104,180 C92,200 88,232 90,262 C91,272 104,272 105,262 C106,236 108,208 116,190 Z" fill="#2b3a5c"/>
+        <path d="M196,180 C208,200 212,232 210,262 C209,272 196,272 195,262 C194,236 192,208 184,190 Z" fill="#2b3a5c"/>
+        <ellipse cx="97" cy="272" rx="7" ry="9" fill="#ffe3cf"/>
+        <ellipse cx="203" cy="272" rx="7" ry="9" fill="#ffe3cf"/>
+
+        <!-- neck + face -->
+        <rect x="142" y="120" width="16" height="34" rx="7" fill="#ffddc4"/>
+        <ellipse cx="150" cy="96" rx="36" ry="38" fill="#ffe8d8"/>
+        <!-- eyes -->
+        <g id="eyes">
+          <ellipse cx="134" cy="102" rx="6.5" ry="8.5" fill="#4a3222"/>
+          <ellipse cx="166" cy="102" rx="6.5" ry="8.5" fill="#4a3222"/>
+          <circle cx="136" cy="99" r="2.2" fill="#fff"/>
+          <circle cx="168" cy="99" r="2.2" fill="#fff"/>
+          <path d="M126,92 q8,-6 16,-2" stroke="#3d2e22" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <path d="M158,90 q8,-4 16,2" stroke="#3d2e22" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        </g>
+        <!-- blush -->
+        <ellipse id="blushL" cx="128" cy="114" rx="7" ry="4" fill="#ffb3ad" opacity=".45"/>
+        <ellipse id="blushR" cx="172" cy="114" rx="7" ry="4" fill="#ffb3ad" opacity=".45"/>
+        <!-- mouth -->
+        <path id="mouth" d="M144,122 q6,5 12,0" stroke="#c96a5e" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <!-- bangs -->
+        <path d="M150,34 C112,34 100,62 102,92 C110,80 116,84 122,72 C126,84 134,82 138,70 C144,84 156,84 162,70 C166,82 174,84 178,72 C184,84 190,80 198,92 C200,62 188,34 150,34 Z" fill="#4a3728"/>
+        <path d="M112,52 q20,-14 40,-12" stroke="#6b5140" stroke-width="2.4" fill="none" opacity=".6" stroke-linecap="round"/>
+      </svg>
+      <!-- =================================================== -->
+    </div>
+
+    <div class="panel">
+      <div class="readout">
+        <div class="zone" id="zoneName">连裤袜</div>
+        <div class="pct" id="pct">100%</div>
+        <div class="badge" id="zettai">✦ 绝对领域 ✦</div>
+      </div>
+
+      <div class="slider-wrap">
+        <input type="range" id="height" min="0" max="100" value="100" step="1"
+               aria-label="袜子高度">
+      </div>
+      <div class="ticks" id="ticks">
+        <span data-zone="光腿">光腿</span>
+        <span data-zone="船袜">船袜</span>
+        <span data-zone="短袜">短袜</span>
+        <span data-zone="中筒袜">中筒</span>
+        <span data-zone="及膝袜">及膝</span>
+        <span data-zone="过膝袜">过膝</span>
+        <span data-zone="大腿袜">大腿</span>
+        <span data-zone="连裤袜">裤袜</span>
+      </div>
+
+      <div class="colors">
+        <span class="label">颜色</span>
+        <button class="swatch sel" data-color="#2a2a2e" style="background:#2a2a2e" aria-label="黑色"></button>
+        <button class="swatch" data-color="#f5f5f0" style="background:#f5f5f0" aria-label="白色"></button>
+        <button class="swatch" data-color="#39435f" style="background:#39435f" aria-label="藏青"></button>
+        <button class="swatch" data-color="#f6c9cf" style="background:#f6c9cf" aria-label="粉色"></button>
+        <button class="swatch striped" data-color="url(#sockStripes)" aria-label="条纹"></button>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <span class="caption">它就像美少女下半身的滑动变阻器</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const slider   = document.getElementById('height');
+  const sockFill = document.getElementById('sockFill');
+  const sockBand = document.getElementById('sockBand');
+  const sheenL   = document.getElementById('sockSheenL');
+  const sheenR   = document.getElementById('sockSheenR');
+  const zoneEl   = document.getElementById('zoneName');
+  const pctEl    = document.getElementById('pct');
+  const badge    = document.getElementById('zettai');
+  const mouth    = document.getElementById('mouth');
+  const blushL   = document.getElementById('blushL');
+  const blushR   = document.getElementById('blushR');
+  const ticks    = document.querySelectorAll('#ticks span');
+  const swatches = document.querySelectorAll('.swatch');
+
+  // leg geometry (svg user units)
+  const ANKLE_Y = 600;   // sock top when v is tiny
+  const HIP_Y   = 302;   // sock top at 100% (hidden under the skirt = tights)
+
+  const ZONES = [
+    [ 2,  '光腿'],
+    [12,  '船袜'],
+    [28,  '短袜'],
+    [45,  '中筒袜'],
+    [58,  '及膝袜'],
+    [75,  '过膝袜'],
+    [92,  '大腿袜'],
+    [101, '连裤袜'],
+  ];
+  const zoneOf = v => ZONES.find(([max]) => v < max)[1];
+
+  function render() {
+    const v = +slider.value;
+    const zone = zoneOf(v);
+    const topY = ANKLE_Y - (v / 100) * (ANKLE_Y - HIP_Y);
+
+    if (zone === '光腿') {
+      sockFill.setAttribute('height', 0);
+      sockBand.style.opacity = 0;
+    } else {
+      sockFill.setAttribute('y', topY);
+      sockFill.setAttribute('height', 640 - topY);
+      // ribbed band at the sock top; hidden once it tucks under the skirt
+      const bandVisible = zone !== '连裤袜';
+      sockBand.setAttribute('y', topY);
+      sockBand.style.opacity = bandVisible ? 0.35 : 0;
+    }
+
+    // tights get a slight sheen + translucency so they read as nylon
+    const isTights = zone === '连裤袜';
+    sockFill.setAttribute('opacity', isTights ? 0.9 : 1);
+    for (const [el, x] of [[sheenL, 134], [sheenR, 160]]) {
+      el.setAttribute('y', topY + 10);
+      el.setAttribute('height', isTights ? 640 - topY - 10 : 0);
+      el.setAttribute('x', x);
+    }
+
+    // readout
+    zoneEl.textContent = zone;
+    pctEl.textContent = v + '%';
+    ticks.forEach(t => t.classList.toggle('active', t.dataset.zone === zone));
+
+    // 绝对领域: the famous thigh-gap zone between over-knee socks and skirt
+    const zettai = zone === '过膝袜' || zone === '大腿袜';
+    badge.classList.toggle('on', zettai);
+    blushL.setAttribute('opacity', zettai ? 0.8 : 0.45);
+    blushR.setAttribute('opacity', zettai ? 0.8 : 0.45);
+    mouth.setAttribute('d', zettai ? 'M144,121 q6,8 12,0' : 'M144,122 q6,5 12,0');
+  }
+
+  slider.addEventListener('input', render);
+
+  swatches.forEach(s => s.addEventListener('click', () => {
+    swatches.forEach(x => x.classList.remove('sel'));
+    s.classList.add('sel');
+    sockFill.setAttribute('fill', s.dataset.color);
+  }));
+
+  render();
+})();
+</script>
+</body>
+</html>
