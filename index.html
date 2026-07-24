@@ -266,8 +266,8 @@
             <path d="M76,618 L76,548 L78,550 L80,550 L82,550 L84,552 L86,552 L88,554 L90,554 L92,552 L94,552 L96,554 L98,558 L100,558 L102,558 L104,558 L106,559 L108,560 L110,560 L112,561 L114,560 L116,564 L118,562 L120,562 L122,563 L124,559 L126,558 L128,560 L130,558 L132,564 L134,564 L136,564 L138,564 L140,566 L142,566 L144,566 L146,566 L148,568 L150,568 L152,568 L154,568 L156,568 L158,568 L158,618 Z"/>
             <path d="M174,618 L174,570 L176,570 L178,570 L180,570 L182,570 L184,570 L186,570 L188,570 L190,570 L192,570 L194,570 L196,570 L198,568 L200,566 L202,562 L204,566 L206,568 L208,568 L210,568 L212,568 L214,568 L216,568 L218,568 L220,568 L222,567 L224,568 L226,568 L228,568 L230,568 L232,568 L234,566 L236,560 L238,560 L240,560 L242,560 L244,560 L246,562 L248,562 L250,562 L252,560 L254,616 L256,616 L258,558 L258,618 Z"/>
             <!-- mid-thigh regions: wider trace that swallows the skirt's cast shadow -->
-            <path d="M92,616 L150,616 L150,622 L149,628 L149,634 L149,640 L148,646 L148,652 L148,658 L148,664 L148,670 L149,676 L149,682 L149,688 L148,694 L148,700 L147,706 L146,712 L145,718 L145,724 L102,724 L103,718 L104,712 L104,706 L104,700 L104,694 L104,688 L103,682 L103,676 L102,670 L101,664 L100,658 L99,652 L98,646 L97,640 L95,634 L94,628 L93,622 L92,616 Z"/>
-            <path d="M185,616 L247,616 L246,622 L246,628 L245,634 L245,640 L245,646 L245,652 L245,658 L245,664 L246,670 L246,676 L248,682 L249,688 L251,694 L254,700 L257,706 L260,712 L263,718 L266,724 L216,724 L213,718 L211,712 L208,706 L205,700 L202,694 L200,688 L199,682 L198,676 L197,670 L196,664 L195,658 L193,652 L192,646 L191,640 L189,634 L188,628 L186,622 L185,616 Z"/>
+            <path d="M94,616 L148,616 L148,622 L147,628 L147,634 L147,640 L146,646 L146,652 L146,658 L146,664 L146,670 L147,676 L147,682 L147,688 L146,694 L146,700 L145,706 L144,712 L143,718 L143,724 L104,724 L105,718 L106,712 L106,706 L106,700 L106,694 L106,688 L105,682 L105,676 L104,670 L103,664 L102,658 L101,652 L100,646 L99,640 L97,634 L96,628 L95,622 L94,616 Z"/>
+            <path d="M187,616 L245,616 L244,622 L244,628 L243,634 L243,640 L243,646 L243,652 L243,658 L243,664 L244,670 L244,676 L246,682 L247,688 L249,694 L252,700 L255,706 L258,712 L261,718 L264,724 L218,724 L215,718 L213,712 L210,706 L207,700 L204,694 L202,688 L201,682 L200,676 L199,670 L198,664 L197,658 L195,652 L194,646 L193,640 L191,634 L190,628 L188,622 L187,616 Z"/>
           </clipPath>
           <pattern id="sockStripes" width="16" height="16" patternUnits="userSpaceOnUse">
             <rect width="16" height="16" fill="#ffffff"/>
@@ -285,6 +285,12 @@
             <stop offset=".75" stop-color="#ffe6cd"/>
             <stop offset="1"   stop-color="#e9bd9c"/>
           </linearGradient>
+          <!-- soft shadow the skirt casts on the bare thighs -->
+          <linearGradient id="hemShade" x1="0" y1="544" x2="0" y2="614" gradientUnits="userSpaceOnUse">
+            <stop offset="0"  stop-color="#403636" stop-opacity=".5"/>
+            <stop offset=".45" stop-color="#5a4a44" stop-opacity=".2"/>
+            <stop offset="1"  stop-color="#5a4a44" stop-opacity="0"/>
+          </linearGradient>
         </defs>
 
         <!-- ground shadow -->
@@ -301,6 +307,8 @@
           <!-- bare skin, painted over the tights down to the sock top -->
           <rect id="skinFillL" x="74"  y="536" width="85"  height="0" fill="url(#skinL)"/>
           <rect id="skinFillR" x="172" y="536" width="132" height="0" fill="url(#skinR)"/>
+          <!-- painted-back cast shadow so the hem keeps its depth -->
+          <rect id="hemShadow" x="74" y="544" width="232" height="70" fill="url(#hemShade)"/>
           <!-- colored socks keep the artwork's shading via screen blending -->
           <rect id="colorFill" x="74" y="935" width="232" height="0" style="mix-blend-mode:screen"/>
           <!-- welt band at the sock top -->
@@ -367,6 +375,7 @@
   const slider    = document.getElementById('height');
   const skinL     = document.getElementById('skinFillL');
   const skinR     = document.getElementById('skinFillR');
+  const hemShadow = document.getElementById('hemShadow');
   const colorFill = document.getElementById('colorFill');
   const sockBand  = document.getElementById('sockBand');
   const kneeL     = document.getElementById('kneeL');
@@ -408,6 +417,8 @@
     const skinH = isTights ? 0 : Math.max(0, topY - LEG_TOP);
     skinL.setAttribute('height', skinH);
     skinR.setAttribute('height', skinH);
+    // the artwork's own shadow survives at 100%; repaint it over bare skin
+    hemShadow.setAttribute('opacity', isTights ? 0 : 1);
 
     // colored sock over the remaining tights
     if (sockColor === 'black' || isBare) {
